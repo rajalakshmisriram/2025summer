@@ -553,6 +553,25 @@
 .color-option.selected {
     border-color: #333;
 }
+    .save-controls {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+#save-indicator {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
     </style>
 </head>
 <body>
@@ -566,7 +585,13 @@
             <span id="deadline-text">Target Deadline: July 13, 2025</span>
             <span id="days-remaining"></span>
         </div>
-
+<div class="save-controls" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+    <button class="btn btn-secondary" onclick="taskTracker.saveData()">Save Progress</button>
+    <button class="btn btn-secondary" onclick="taskTracker.exportData()">Export Backup</button>
+    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+    <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">Import Backup</button>
+    <div id="save-indicator" style="display: none; color: green; font-weight: bold; padding: 5px;"></div>
+</div>
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number" id="total-tasks">0</div>
@@ -737,34 +762,42 @@
     <script>
         class TaskTracker {
             constructor() {
-                this.tasks = [];
-                this.currentFilter = 'all';
-                this.selectedTask = null;
-                this.timerInterval = null;
-                this.timeRemaining = 25 * 60; // 25 minutes in seconds
-                this.isBreak = false;
-                this.isRunning = false;
-                this.achievements = [];
-                this.dailyTasksCompleted = 0;
-                this.pomodoroStreak = 0;
-                this.deadlineDate = new Date('2025-07-13');
-                this.customGroups = []; // Add this line
-                
-                this.initializeDefaultTasks();
-                this.bindEvents();
-                this.updateStats();
-                this.updateDeadlineInfo();
-                this.updateForecast();
-                this.focusMinutes = 25;
-                this.breakMinutes = 5;
-                this.longBreakMinutes = 15;
-                this.sessionsBeforeLongBreak = 4;
-                this.currentSessionCount = 0;
-                this.autoStartBreaks = false;
-                this.autoStartFocus = false;
-                this.notificationSound = false;
-                this.sessionHistory = [];
-                this.currentPhase = 'focus';
+    this.tasks = [];
+    this.currentFilter = 'all';
+    this.selectedTask = null;
+    this.timerInterval = null;
+    this.timeRemaining = 25 * 60;
+    this.isBreak = false;
+    this.isRunning = false;
+    this.achievements = [];
+    this.dailyTasksCompleted = 0;
+    this.pomodoroStreak = 0;
+    this.deadlineDate = new Date('2025-07-13');
+    this.focusMinutes = 25;
+    this.breakMinutes = 5;
+    this.longBreakMinutes = 15;
+    this.sessionsBeforeLongBreak = 4;
+    this.currentSessionCount = 0;
+    this.autoStartBreaks = false;
+    this.autoStartFocus = false;
+    this.notificationSound = false;
+    this.sessionHistory = [];
+    this.currentPhase = 'focus';
+        if (!this.loadData()) {
+        this.initializeDefaultTasks();
+    }
+    
+    this.bindEvents();
+    this.updateStats();
+    this.updateDeadlineInfo();
+    this.updateForecast();
+    this.renderAchievements();
+    this.renderSessionHistory();
+    
+    // Auto-save every 30 seconds
+    setInterval(() => {
+        this.saveData();
+    }, 30000);
             }
 
             initializeDefaultTasks() {
@@ -885,6 +918,140 @@
 
                 this.tasks = defaultTasks;
             }
+            // Save data to memory (since localStorage is not available)
+saveData() {
+    const data = {
+        tasks: this.tasks,
+        achievements: this.achievements,
+        dailyTasksCompleted: this.dailyTasksCompleted,
+        pomodoroStreak: this.pomodoroStreak,
+        currentSessionCount: this.currentSessionCount,
+        sessionHistory: this.sessionHistory,
+        focusMinutes: this.focusMinutes,
+        breakMinutes: this.breakMinutes,
+        longBreakMinutes: this.longBreakMinutes,
+        autoStartBreaks: this.autoStartBreaks,
+        autoStartFocus: this.autoStartFocus,
+        notificationSound: this.notificationSound,
+        currentPhase: this.currentPhase,
+        lastSaved: new Date().toISOString()
+    };
+    
+    // Store in a global variable for the session
+    window.taskTrackerData = data;
+    
+    // Show save indicator
+    this.showSaveIndicator();
+}
+
+// Load data from memory
+loadData() {
+    if (window.taskTrackerData) {
+        const data = window.taskTrackerData;
+        
+        this.tasks = data.tasks || [];
+        this.achievements = data.achievements || [];
+        this.dailyTasksCompleted = data.dailyTasksCompleted || 0;
+        this.pomodoroStreak = data.pomodoroStreak || 0;
+        this.currentSessionCount = data.currentSessionCount || 0;
+        this.sessionHistory = data.sessionHistory || [];
+        this.focusMinutes = data.focusMinutes || 25;
+        this.breakMinutes = data.breakMinutes || 5;
+        this.longBreakMinutes = data.longBreakMinutes || 15;
+        this.autoStartBreaks = data.autoStartBreaks || false;
+        this.autoStartFocus = data.autoStartFocus || false;
+        this.notificationSound = data.notificationSound || false;
+        this.currentPhase = data.currentPhase || 'focus';
+        
+        // Update UI elements
+        document.getElementById('focus-minutes').value = this.focusMinutes;
+        document.getElementById('break-minutes').value = this.breakMinutes;
+        document.getElementById('long-break-minutes').value = this.longBreakMinutes;
+        document.getElementById('auto-start-breaks').checked = this.autoStartBreaks;
+        document.getElementById('auto-start-focus').checked = this.autoStartFocus;
+        document.getElementById('notification-sound').checked = this.notificationSound;
+        
+        return true;
+    }
+    return false;
+}
+
+// Show save indicator
+showSaveIndicator() {
+    const indicator = document.getElementById('save-indicator');
+    if (indicator) {
+        indicator.style.display = 'block';
+        indicator.textContent = 'Data saved!';
+        setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 2000);
+    }
+}
+
+// Export data as JSON for backup
+exportData() {
+    const data = {
+        tasks: this.tasks,
+        achievements: this.achievements,
+        dailyTasksCompleted: this.dailyTasksCompleted,
+        pomodoroStreak: this.pomodoroStreak,
+        currentSessionCount: this.currentSessionCount,
+        sessionHistory: this.sessionHistory,
+        settings: {
+            focusMinutes: this.focusMinutes,
+            breakMinutes: this.breakMinutes,
+            longBreakMinutes: this.longBreakMinutes,
+            autoStartBreaks: this.autoStartBreaks,
+            autoStartFocus: this.autoStartFocus,
+            notificationSound: this.notificationSound,
+            currentPhase: this.currentPhase
+        },
+        exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `task-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Import data from JSON
+importData(jsonData) {
+    try {
+        const data = JSON.parse(jsonData);
+        
+        this.tasks = data.tasks || [];
+        this.achievements = data.achievements || [];
+        this.dailyTasksCompleted = data.dailyTasksCompleted || 0;
+        this.pomodoroStreak = data.pomodoroStreak || 0;
+        this.currentSessionCount = data.currentSessionCount || 0;
+        this.sessionHistory = data.sessionHistory || [];
+        
+        if (data.settings) {
+            this.focusMinutes = data.settings.focusMinutes || 25;
+            this.breakMinutes = data.settings.breakMinutes || 5;
+            this.longBreakMinutes = data.settings.longBreakMinutes || 15;
+            this.autoStartBreaks = data.settings.autoStartBreaks || false;
+            this.autoStartFocus = data.settings.autoStartFocus || false;
+            this.notificationSound = data.settings.notificationSound || false;
+            this.currentPhase = data.settings.currentPhase || 'focus';
+        }
+        
+        this.renderTasks();
+        this.updateStats();
+        this.updateForecast();
+        this.renderAchievements();
+        this.renderSessionHistory();
+        this.updateTimerPhase();
+        
+        alert('Data imported successfully!');
+    } catch (error) {
+        alert('Error importing data: ' + error.message);
+    }
+}
             deleteGroup(subject) {
     if (confirm(`Are you sure you want to delete all ${subject} tasks? This action cannot be undone.`)) {
         this.tasks = this.tasks.filter(task => task.subject !== subject);
@@ -1074,6 +1241,7 @@ document.querySelectorAll('.delete-group').forEach(deleteBtn => {
             }
 
             addTask() {
+                
                 const subject = document.getElementById('task-subject').value;
                 const title = document.getElementById('task-title').value;
                 const notes = document.getElementById('task-notes').value;
@@ -1100,6 +1268,7 @@ document.querySelectorAll('.delete-group').forEach(deleteBtn => {
                 // Clear form
                 document.getElementById('task-title').value = '';
                 document.getElementById('task-notes').value = '';
+                this.saveData();
             }
 
             toggleTask(taskId) {
@@ -1123,6 +1292,7 @@ document.querySelectorAll('.delete-group').forEach(deleteBtn => {
                     this.updateStats();
                     this.updateForecast();
                 }
+                this.saveData();
             }
 
             addRevisionTask(originalTask) {
@@ -1143,6 +1313,7 @@ document.querySelectorAll('.delete-group').forEach(deleteBtn => {
                 this.renderTasks();
                 this.updateStats();
                 this.updateForecast();
+                this.saveData();
             }
 
             selectTask(taskId) {
@@ -1322,6 +1493,7 @@ document.querySelectorAll('.delete-group').forEach(deleteBtn => {
     
     document.getElementById('start-timer').textContent = 'Start';
     this.updateStats();
+    this.saveData();
 }
 
             checkAchievements() {
@@ -1626,6 +1798,17 @@ renderSessionHistory() {
         setInterval(() => {
             taskTracker.updateDeadlineInfo();
         }, 60000);
+    // Handle file import
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            taskTracker.importData(e.target.result);
+        };
+        reader.readAsText(file);
+    }
+}
     </script>
 </body>
 </html>
