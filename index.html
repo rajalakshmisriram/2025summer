@@ -468,6 +468,71 @@
             margin-bottom: 20px;
             border-left: 4px solid #2196f3;
         }
+        .add-group-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.add-group-form {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.add-group-form h3 {
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+.add-group-form .form-group {
+    margin-bottom: 15px;
+}
+
+.add-group-form input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.add-group-form .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.color-picker {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.color-option.selected {
+    border-color: #333;
+}
     </style>
 </head>
 <body>
@@ -522,8 +587,8 @@
                     <button class="filter-btn" data-subject="lekhanabhyasah">lekhanAbhyAsAH</button>
                     <button class="filter-btn" data-subject="pathanabhyasah">paThanAbhyAsAH</button>
                     <button class="filter-btn" data-subject="revision">Revision</button>
+                    <button class="filter-btn" id="add-group-btn">+ Add Group</button>
                 </div>
-
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
@@ -663,6 +728,7 @@
                 this.dailyTasksCompleted = 0;
                 this.pomodoroStreak = 0;
                 this.deadlineDate = new Date('2025-07-13');
+                this.customGroups = []; // Add this line
                 
                 this.initializeDefaultTasks();
                 this.bindEvents();
@@ -799,6 +865,113 @@
 
                 this.tasks = defaultTasks;
             }
+        addCustomGroup(groupName, groupColor) {
+    const groupId = groupName.toLowerCase().replace(/\s+/g, '-');
+    
+    // Check if group already exists
+    if (this.customGroups.find(g => g.id === groupId)) {
+        alert('Group already exists!');
+        return;
+    }
+    
+    const newGroup = {
+        id: groupId,
+        name: groupName,
+        color: groupColor
+    };
+    
+    this.customGroups.push(newGroup);
+    this.addGroupToFilters(newGroup);
+    this.addGroupToTaskForm(newGroup);
+    this.addGroupCSS(newGroup);
+}
+
+addGroupToFilters(group) {
+    const filtersContainer = document.querySelector('.subject-filters');
+    const addGroupBtn = document.getElementById('add-group-btn');
+    
+    const filterBtn = document.createElement('button');
+    filterBtn.className = 'filter-btn';
+    filterBtn.setAttribute('data-subject', group.id);
+    filterBtn.textContent = group.name;
+    
+    filterBtn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        filterBtn.classList.add('active');
+        this.currentFilter = group.id;
+        this.renderTasks();
+    });
+    
+    filtersContainer.insertBefore(filterBtn, addGroupBtn);
+}
+
+addGroupToTaskForm(group) {
+    const taskSubjectSelect = document.getElementById('task-subject');
+    const option = document.createElement('option');
+    option.value = group.id;
+    option.textContent = group.name;
+    taskSubjectSelect.appendChild(option);
+}
+
+addGroupCSS(group) {
+    const style = document.createElement('style');
+    style.textContent = `.${group.id} { border-left-color: ${group.color} !important; }`;
+    document.head.appendChild(style);
+}
+
+showAddGroupModal() {
+    const modal = document.createElement('div');
+    modal.className = 'add-group-modal';
+    modal.innerHTML = `
+        <div class="add-group-form">
+            <h3>Add New Group</h3>
+            <div class="form-group">
+                <label>Group Name:</label>
+                <input type="text" id="new-group-name" placeholder="Enter group name">
+            </div>
+            <div class="form-group">
+                <label>Group Color:</label>
+                <div class="color-picker">
+                    <div class="color-option selected" style="background-color: #e74c3c;" data-color="#e74c3c"></div>
+                    <div class="color-option" style="background-color: #27ae60;" data-color="#27ae60"></div>
+                    <div class="color-option" style="background-color: #f39c12;" data-color="#f39c12"></div>
+                    <div class="color-option" style="background-color: #9b59b6;" data-color="#9b59b6"></div>
+                    <div class="color-option" style="background-color: #3498db;" data-color="#3498db"></div>
+                    <div class="color-option" style="background-color: #e67e22;" data-color="#e67e22"></div>
+                    <div class="color-option" style="background-color: #2ecc71;" data-color="#2ecc71"></div>
+                    <div class="color-option" style="background-color: #f1c40f;" data-color="#f1c40f"></div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="this.closest('.add-group-modal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="taskTracker.createGroup()">Create Group</button>
+            </div>
+        </div>
+    `;
+    
+    // Color picker functionality
+    modal.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', () => {
+            modal.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+        });
+    });
+    
+    document.body.appendChild(modal);
+}
+
+createGroup() {
+    const groupName = document.getElementById('new-group-name').value.trim();
+    const selectedColor = document.querySelector('.color-option.selected').dataset.color;
+    
+    if (!groupName) {
+        alert('Please enter a group name');
+        return;
+    }
+    
+    this.addCustomGroup(groupName, selectedColor);
+    document.querySelector('.add-group-modal').remove();
+}
 
             bindEvents() {
                 // Filter buttons
@@ -810,6 +983,9 @@
                         this.renderTasks();
                     });
                 });
+                document.getElementById('add-group-btn').addEventListener('click', () => {
+    this.showAddGroupModal();
+});
 
                 // Add task
                 document.getElementById('add-task').addEventListener('click', () => {
