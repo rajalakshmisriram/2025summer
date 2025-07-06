@@ -534,15 +534,51 @@
             </div>
 
             <div class="sidebar">
-    <div class="pomodoro-timer">
-        <h3>Pomofocus Timer</h3>
-        <iframe 
-            src="https://pomofocus.io" 
-            width="100%" 
-            height="500" 
-            style="border: none; border-radius: 10px;"
-            allowfullscreen>
-        </iframe>
+                <div class="pomofocus-container" style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); margin-bottom: 20px;">
+  <h3 style="margin-bottom: 15px; color: #667eea;">Pomofocus Timer</h3>
+  <iframe 
+    src="https://pomofocus.io" 
+    width="100%" 
+    height="500" 
+    style="border: none; border-radius: 10px;"
+    allowfullscreen>
+  </iframe>
+</div>
+                <div class="pomodoro-timer">
+    <h3>Advanced Pomodoro Timer</h3>
+    
+    <div class="timer-settings">
+        <div class="timer-presets">
+            <button class="preset-btn active" data-preset="25,5,15">Classic (25/5/15)</button>
+            <button class="preset-btn" data-preset="45,10,20">Extended (45/10/20)</button>
+            <button class="preset-btn" data-preset="15,3,10">Quick (15/3/10)</button>
+            <button class="preset-btn" data-preset="90,20,30">Deep Work (90/20/30)</button>
+        </div>
+        
+        <div class="custom-timer">
+            <label>Custom:</label>
+            <input type="number" id="focus-minutes" min="1" max="120" value="25">
+            <span>focus</span>
+            <input type="number" id="break-minutes" min="1" max="30" value="5">
+            <span>break</span>
+            <input type="number" id="long-break-minutes" min="1" max="60" value="15">
+            <span>long break</span>
+        </div>
+        
+        <div class="timer-options">
+            <div class="timer-option">
+                <input type="checkbox" id="auto-start-breaks">
+                <label for="auto-start-breaks">Auto-start breaks</label>
+            </div>
+            <div class="timer-option">
+                <input type="checkbox" id="auto-start-focus">
+                <label for="auto-start-focus">Auto-start focus after break</label>
+            </div>
+            <div class="timer-option">
+                <input type="checkbox" id="notification-sound">
+                <label for="notification-sound">Notification sound</label>
+            </div>
+        </div>
     </div>
     
     <div class="current-task" id="current-task" style="display: none;">
