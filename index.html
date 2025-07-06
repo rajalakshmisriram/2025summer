@@ -333,6 +333,26 @@
             border-color: #667eea;
         }
 
+        .delete-group {
+    display: inline-block;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+    text-align: center;
+    font-size: 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.delete-group:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
         .add-task-form {
             background: white;
             padding: 25px;
@@ -576,17 +596,17 @@
                 
                 <div class="subject-filters">
                     <button class="filter-btn active" data-subject="all">Full Mix</button>
-                    <button class="filter-btn" data-subject="biochem">Biochem</button>
-                    <button class="filter-btn" data-subject="biology">Biology</button>
-                    <button class="filter-btn" data-subject="pathophysiology">Pathophysiology</button>
-                    <button class="filter-btn" data-subject="psychology">Psychology</button>
-                    <button class="filter-btn" data-subject="stats">AP Stats</button>
-                    <button class="filter-btn" data-subject="sat-reading">SAT Reading</button>
-                    <button class="filter-btn" data-subject="sat-math">SAT Math</button>
-                    <button class="filter-btn" data-subject="podcasting">Podcasting</button>
-                    <button class="filter-btn" data-subject="lekhanabhyasah">lekhanAbhyAsAH</button>
-                    <button class="filter-btn" data-subject="pathanabhyasah">paThanAbhyAsAH</button>
-                    <button class="filter-btn" data-subject="revision">Revision</button>
+                    <button class="filter-btn" data-subject="biochem">Biochem <span class="delete-group" data-subject="biochem">×</span></button>
+                    <button class="filter-btn" data-subject="biology">Biology <span class="delete-group" data-subject="biology">×</span></button>
+                    <button class="filter-btn" data-subject="pathophysiology">Pathophysiology <span class="delete-group" data-subject="pathophysiology">×</span></button>
+                    <button class="filter-btn" data-subject="psychology">Psychology <span class="delete-group" data-subject="psychology">×</span></button>
+                    <button class="filter-btn" data-subject="stats">AP Stats <span class="delete-group" data-subject="stats">×</span></button>
+                    <button class="filter-btn" data-subject="sat-reading">SAT Reading <span class="delete-group" data-subject="sat-reading">×</span></button>
+                    <button class="filter-btn" data-subject="sat-math">SAT Math <span class="delete-group" data-subject="sat-math">×</span></button>
+                    <button class="filter-btn" data-subject="podcasting">Podcasting <span class="delete-group" data-subject="podcasting">×</span></button>
+                    <button class="filter-btn" data-subject="lekhanabhyasah">lekhanAbhyAsAH <span class="delete-group" data-subject="lekhanabhyasah">×</span></button>
+                    <button class="filter-btn" data-subject="pathanabhyasah">paThanAbhyAsAH <span class="delete-group" data-subject="pathanabhyasah">×</span></button>
+                    <button class="filter-btn" data-subject="revision">Revision <span class="delete-group" data-subject="revision">×</span></button>
                     <button class="filter-btn" id="add-group-btn">+ Add Group</button>
                 </div>
                 <div class="progress-bar">
@@ -865,6 +885,26 @@
 
                 this.tasks = defaultTasks;
             }
+            deleteGroup(subject) {
+    if (confirm(`Are you sure you want to delete all ${subject} tasks? This action cannot be undone.`)) {
+        this.tasks = this.tasks.filter(task => task.subject !== subject);
+        
+        // If currently viewing the deleted subject, switch to "all"
+        if (this.currentFilter === subject) {
+            this.currentFilter = 'all';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.subject === 'all') {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        this.renderTasks();
+        this.updateStats();
+        this.updateForecast();
+    }
+}
         addCustomGroup(groupName, groupColor) {
     const groupId = groupName.toLowerCase().replace(/\s+/g, '-');
     
@@ -889,19 +929,35 @@
 addGroupToFilters(group) {
     const filtersContainer = document.querySelector('.subject-filters');
     const addGroupBtn = document.getElementById('add-group-btn');
-    
+
     const filterBtn = document.createElement('button');
     filterBtn.className = 'filter-btn';
     filterBtn.setAttribute('data-subject', group.id);
     filterBtn.textContent = group.name;
-    
+
+    // Create delete button
+    const deleteBtn = document.createElement('span');
+    deleteBtn.className = 'delete-group';
+    deleteBtn.textContent = '×';
+    deleteBtn.setAttribute('data-subject', group.id);
+
+    // Add delete event listener
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering filter button click
+        this.deleteGroup(group.id);
+    });
+
+    // Append delete button inside filter button
+    filterBtn.appendChild(deleteBtn);
+
+    // Add click event to filter button to filter tasks by group
     filterBtn.addEventListener('click', () => {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         filterBtn.classList.add('active');
         this.currentFilter = group.id;
         this.renderTasks();
     });
-    
+
     filtersContainer.insertBefore(filterBtn, addGroupBtn);
 }
 
@@ -986,7 +1042,14 @@ createGroup() {
                 document.getElementById('add-group-btn').addEventListener('click', () => {
     this.showAddGroupModal();
 });
-
+// Delete group buttons
+document.querySelectorAll('.delete-group').forEach(deleteBtn => {
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent filter button click
+        const subject = deleteBtn.dataset.subject;
+        this.deleteGroup(subject);
+    });
+});
                 // Add task
                 document.getElementById('add-task').addEventListener('click', () => {
                     this.addTask();
